@@ -1,0 +1,54 @@
+# Web framework and server
+python-dotenv
+fastapi
+uvicorn[standard]
+gunicorn
+
+# Configuration and data validation
+pydantic
+pydantic-settings
+
+# AI Model Interaction
+openai
+httpx
+h2
+
+# For structured JSON
+json5
+
+#For Google Cloud Supports
+google-cloud-storage
+google-cloud-secret-manager
+
+#Image Support
+pymupdf
+Pillow
+
+# For Google Cloud Pub Sub
+google-cloud-pubsub
+
+# For structured logging
+python-json-logger
+
+# Dynatrace / OpenTelemetry Core & Exporters
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
+
+# OpenTelemetry Auto-Instrumentations
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-logging
+
+# For Prometheus Metrics
+prometheus-client
+prometheus-fastapi-instrumentator
+
+# For Dynatrace
+autodynatrace
+
+#pytest and testing utilities
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock

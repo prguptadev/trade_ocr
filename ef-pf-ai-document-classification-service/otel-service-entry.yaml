@@ -1,0 +1,15 @@
+# otel-service-entry.yaml
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: otel-collector-se
+  namespace: trd-perf1
+spec:
+  hosts:
+  - uat-otel-collector-svc.dynatrace.svc.cluster.local
+  ports:
+  - number: 4317
+    name: grpc-otlp
+    protocol: GRPC
+  location: MESH_INTERNAL
+  resolution: DNS

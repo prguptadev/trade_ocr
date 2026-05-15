@@ -1,0 +1,303 @@
+{
+    "CRL": {
+        "page_wise": {
+            "crl_page_level_fields_1": [
+                {
+                    "name": "debit_account_no",
+                    "description": "(Nullable) The **primary INR account number, of the applicant** to be debited for **payment**. This Field is associated with one of the labels: ['INR A/C No.', 'INR A/C']. Must be 14 digits.",
+                    "validation_regex": "^\\d{14}$"
+                },
+                {
+                    "name": "other_bank_account_no",
+                    "description": "(Nullable) The secondary, Foreign Currency (FCY), or EEFC account number to be debited for **payment**. This Field is associated with one of the labels: ['FCY A/C No', 'EEFC A/C No', 'Other A/C No']. This field is often located near or directly below the 'DEBIT ACCOUNT NO'. Must be 14 digits.",
+                    "validation_regex": "^\\d{14}$"
+                },
+                {
+                    "name": "other_bank_amount",
+                    "description": "(Nullable) The principal numerical amount to be remitted for the transaction through the 'FCY' / 'EEFC' / Other account. You must format the amount as a decimal number.",
+                    "validation_regex": "^\\d+(\\.\\d{1,2})?$"
+                },
+                {
+                    "name": "other_bank_currency",
+                    "description": "(Nullable) The three-letter ISO 4217 currency code for the transaction through the 'FCY'/'EEFC'/Other account. This field is associated with one of the labels: ['Currency', 'CCY', 'Transaction Currency'].",
+                    "validation_regex": "^[A-Z]{3}$"
+                },
+                {
+                    "name": "fee_account_beneficiary_selected_on_us",
+                    "description": "This is a boolean field, which is critical for the bank to debit charges. This field is associated with the label phrase: ['Account to be debited for charges']. You must output 'True', if there is a **tick mark, or checked mark, or value** against the checkbox label phrase **'on us'**, else output False.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "fee_account_beneficiary_selected_net_off",
+                    "description": "This is a boolean checkbox field, which is critical for the bank to debit charges. This field is associated with the label phrase: ['Account to be debited for charges']. You must output 'True', if there is a **tick mark, or checked mark, or value** against the checkbox label phrase **'net off'**, else output False",
+                    "validation_regex": null
+                },
+                {
+                    "name": "fee_account_no",
+                    "description": "(Nullable) The account number to be debited **specifically** for **bank charges**. This field is associated with possible label phrase: ['Account to be debited for charges']. Must be 14 digits. For this field, you must strictly follow the extraction rules and instructions provided to you.",
+                    "validation_regex": "^\\d{14}$"
+                },
+                {
+                    "name": "remittance_currency",
+                    "description": "Deduce and extract the three-letter ISO 4217 currency code.\n- **Primary Method (Symbol/Code Detection)**: Scan the text immediately around the primary remittance amount for either a standard currency symbol ($, €, £, etc.) or a 3-letter ISO code.\n - If a symbol is found, convert it to its ISO code (e.g., '$' -> 'USD', '€' -> 'EUR').\n - If an ISO code is found, extract it.\n- **Secondary Method (Contextual Clues)**: If no explicit symbol or code is found, check for mentions of currency within nearby labels (e.g., 'Amount in USD', 'Value (INR)').\n- **Output Format**: Final output must be a 3-letter uppercase ISO 4217 code.",
+                    "validation_regex": "^[A-Z]{3}$"
+                },
+                {
+                    "name": "remittance_amount",
+                    "description": "Extract the remittance amount with high-confidence verification.\n- **Step 1: Numeric Extraction**: Identify the primary monetary value associated with labels like 'Amount to be remitted' or 'Amount'. Clean the value by removing any currency symbols or thousands separators (commas), while retaining the decimal point.\n- **Step 2: Textual Verification**: Find the corresponding amount written out in words, usually located directly after or below the numeric value. Convert this text to a number.\n- **Step 3: Confidence Check**: Compare the results from Step 1 and Step 2.\n - **If they match**: The amount is verified. Return the numeric value from Step 1.\n - **If they DO NOT match**: The amount written in words is the source of truth. Return the number derived from the words and explicitly note the mismatch internally.\n- **Final Output**: A single, clean numerical string.",
+                    "validation_regex": "^\\d+(\\.\\d{1,2})?$"
+                }
+            ],
+            "crl_page_level_fields_2": [
+                {
+                    "name": "date_of_receipt_of_document",
+                    "description": "Objective: Extract the date from a circular seal stamp.\n- **STEPS: Look for:\n- (1) A **circular seal/stamp with numbers 00-23 around the outer edge** (24-hour time marking) - This is a stamp confirming receipt, extract the date next to the 'RECEIVED' label; (3) Extract this date (any format: DD-MM-YYYY, D-M-Y, numeric, text with month names, etc.) and normalize to DD-MM-YYYY format. (4) There could be multiple seals in the document.",
+                    "validation_regex": "^\\d{2}-\\d{2}-\\d{4}$"
+                },
+                {
+                    "name": "time_of_receipt_of_document",
+                    "description": "Objective: Extract time from a circular seal stamp.\n- Structure: Look for a circular stamp and locate the outer circle for the 24-hour time ring.\n- Time Logic: Time is based on the **leading edge** of a triangular arrow pointing to the outer ring.\n- Rule A (On the Line): If the leading edge is *exactly* on a major hour line 'H', time is (H-1):00. (e.g., on '12' is 11:00, on '00' is 23:00).\n- Rule B (In the Slot): If the leading edge is *past* major hour line 'H', the hour is 'H'. Minutes are determined by which 15-minute quadrant of the slot it occupies (:00, :15, :30, :45).\n- Format: 'HH:MM'. Return null if not found.\n- Confidence: Always set confidence to 'LOW'.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "customer_request_letter_date",
+                    "description": "Objective: Extract the date the customer/applicant wrote the letter.\n\nLabels: ['Date:', 'Dated:', 'Letter Date:']\nLocation: Typically in the header near applicant details or near the signature.\n\nRules:\n- This is the authorship date of the letter, not invoice, receipt, or stamp dates.\n- If multiple dates exist, choose the one clearly associated with the letter content or signature.\n\nValidation:\n- Must not be a future date.\n- Return null if unclear.\n\nFormat: DD-MM-YYYY.",
+                    "validation_regex": "^\\d{2}-\\d{2}-\\d{4}$"
+                },
+                {
+                    "name": "latest_shipment_date",
+                    "description": "Objective: Extract the latest date goods must be shipped.\n- Labels: ['Latest Shipment Date:', 'Shipment by:', 'LSD:', 'Expected Date of Despatch / Download (software)']\n- Location: In shipping terms or Letter of Credit conditions.\n- Format: 'DD-MM-YYYY'. Validation Rules: The extracted date must be a future date. Return null if not found.",
+                    "validation_regex": "^\\d{2}-\\d{2}-\\d{4}$"
+                },
+                {
+                    "name": "dispatch_port",
+                    "description": "Objective: Extract the canonical city name of the port of loading from shipment-related sections.\n\n1. Context Scope: Search only in sections or fields labeled with 'Shipment Details', 'Port of Loading', 'POL', 'From Port', 'Place of Loading', or 'Port of Dispatch' (case-insensitive). Do not extract from unrelated sections.\n2. Label Extraction: Extract values immediately following recognized labels (ending with ':' or '-') or same-row elements in tables.\n3. Preprocessing:\n    - Remove whole words: 'port', 'sea port', 'airport' (case-insensitive).\n    - Strip all punctuation (commas, periods, slashes, hyphens).\n    - Normalize diacritics (e.g., 'Gdańsk' → 'Gdansk').\n    - Trim whitespace.\n    - Convert to Title Case.\n4. Extraction Rules:\n    - If the value is 'Any Port in [Country Name]' or 'Any Port of [Country Name]', return only the normalized country name (Title Case).\n    - If the value is a country name, return it (Title Case).\n    - If the value is a city or port name, return only the city name (Title Case).\n 4. Prohibitions:\n    - Do not infer or fabricate values.\n    - Never extract from loosely related or unlabeled sections.\n    - Never return values containing forbidden words or non-alphabetic content (unless needed for city).\n6. Examples:\n    - Input: 'Port of Dispatch: BUSAN PORT, KOREA' — Output: 'Busan'\n  - Input: 'Port of Dispatch: Any Port in Spain' — Output: 'Spain'\n-   - Input: 'Port of Dispatch: Any Port of India' — Output: 'India'\n-  - Input: 'POL: Any Sea port in TURKEY' — Output: 'Turkey'\n    - Input: 'Port of Loading: SHANGHAI/ TIANJIN PORT, CHINA' — Output: 'Shanghai'\n ",
+                    "validation_regex": null
+                },
+                {
+                    "name": "dispatch_port_country",
+                    "description": "Objective: Extract the full country name for the port of loading, based strictly on the extracted DISPATCH PORT value.\n\n1. Use only the extracted city/port/country value from 'DISPATCH PORT' for inference.\n2. If the value is a known city/port, return its country (Title Case, English).\n 3. If the value is a country name, return it (Title Case).\n 4. Never infer from unrelated text, partial matches, or guesses.\n 5. If the value is 'Any Port in [Country Name]' or 'Any Port of [Country Name]', return only the normalized country name (Title Case).\n6. Always output normalized country names, never codes.\n7. If not recognized, return null.\nExamples:\n- 'Dispatch Port: Hamburg' — Output: 'Germany'\n- 'Dispatch Port: Any Port in Spain' — Output: 'Spain'\n-  'Dispatch Port: Any Port of India' — Output: 'India'\n- 'Dispatch Port: Alexandria' — Output: 'Egypt'",
+                    "validation_regex": null
+                },
+                {
+                    "name": "delivery_port",
+                    "description": "Objective: Extract the canonical city name of the port of discharge or delivery from shipment-related sections.\n\n1. Context Scope: Search only in sections or fields labeled with 'Shipment Details', 'Port of Discharge', 'POD', 'To Port', 'Final Destination', or similar (case-insensitive). Do not extract from unrelated sections.\n2. Label Extraction: Extract values immediately following recognized labels (ending with ':' or '-') or same-row elements in tables.\n3. Preprocessing:\n    - Remove whole words: 'port', 'sea port', 'airport' (case-insensitive).\n    - Strip all punctuation (commas, periods, slashes, hyphens).\n    - Normalize diacritics (e.g., 'Gdańsk' → 'Gdansk').\n    - Trim whitespace.\n    - Convert to Title Case.\n4. Extraction Rules:\n    - If the value is 'Any Port in [Country Name]' or 'Any Port of [Country Name]', return only the normalized country name (Title Case).\n    - If the value is a country name, return it (Title Case).\n    - If the value is a city or port name, return only the city name (Title Case).\n 4. Prohibitions:\n    - Do not infer or fabricate values.\n    - Never extract from loosely related or unlabeled sections.\n    - Never return values containing forbidden words or non-alphabetic content (unless needed for city).\n6. Examples:\n    - Input: 'Port of Discharge: NHAVA SHEVA PORT, INDIA' — Output: 'Nhava Sheva'\n  - Input: 'Port of Discharge: Any Port in Spain' — Output: 'Spain'\n-   - Input: 'Port of Discharge: Any Port of India' — Output: 'India'\n-  - Input: 'POD: Any Sea port in TURKEY' — Output: 'Turkey'\n    - Input: 'Final Destination: SHANGHAI/ TIANJIN PORT, CHINA' — Output: 'Shanghai'\n ",
+                    "validation_regex": null
+                },
+                {
+                    "name": "delivery_port_country",
+                    "description": "Objective: Extract the full country name for the port of discharge, based strictly on the extracted DELIVERY PORT value.\n\n1. Use only the extracted city/port/country value from 'DELIVERY PORT' for inference.\n2. If the value is a known city/port, return its country (Title Case, English).\n 3. If the value is a country name, return it (Title Case).\n 4. Never infer from unrelated text, partial matches, or guesses.\n 5. If the value is 'Any Port in [Country Name]' or 'Any Port of [Country Name]', return only the normalized country name (Title Case).\n 6. Always output normalized country names, never codes.\n7. If not recognized, return null.\nExamples:\n- 'Delivery Port: Nhava Sheva' — Output: 'India'\n- 'Delivery Port: Any Port in Germany' — Output: 'Germany'\n-  'Delivery Port: Any Port of India' — Output: 'India'\n- 'Delivery Port: Alexandria' — Output: 'Egypt'",
+                    "validation_regex": null
+                },
+                {
+                    "name": "fb_charges_on_beneficiary_selected",
+                    "description": "This is a boolean field that determines if the beneficiary pays all foreign bank charges (BEN option). This field is associated with the label phrases: ['FB CHARGES', 'on beneficiary', 'BEN']. You must output 'True' if there is a **tick mark, checked mark, or any positive mark (✓, ✔, √, v, x)** that is clearly overlapping or inside the bounding box of the 'on beneficiary' or 'BEN' option label (with threshold less than 10 pixels proximity), else output 'False'. Ignore faint marks if they are detached, very small, or outside the bounding box of the label. This is the default option when no valid marks are detected on any option.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "fb_charges_on_us_selected",
+                    "description": "This is a boolean field that determines if the sender pays all foreign bank charges (OUR option). This field is associated with the label phrases: ['FB CHARGES', 'on us', 'OUR']. You must output 'True' if there is a **tick mark, checked mark, or any positive mark (✓, ✔, √, v, x)** that is clearly overlapping or inside the bounding box of the 'on us' or 'OUR' option label (with threshold less than 10 pixels proximity), else output 'False'. Ignore faint marks if they are detached, very small, or outside the bounding box of the label.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "fb_charges_full_value_selected",
+                    "description": "This is a boolean field that determines if full value payment option is selected for foreign bank charges. This field is associated with the label phrases: ['FB CHARGES', 'Full Value']. You must output 'True' if there is a **tick mark, checked mark, or any positive mark (✓, ✔, √, v, x)** that is clearly overlapping or inside the bounding box of the 'Full Value' option label (with threshold less than 10 pixels proximity), else output 'False'. Ignore faint marks if they are detached, very small, or outside the bounding box of the label.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "fb_charges",
+                    "description": "(Nullable) The original foreign bank charges code value extracted from the document. This field is associated with possible label phrases: ['FB CHARGES', 'Foreign Bank Charges', 'Details of Charges']. Expected format is a single character code: 'O' for 'on us'/'OUR'/'Full Value', 'U' for 'on beneficiary'/'BEN'. If multiple selection is detected, output 'O' when 'on us' and 'full value' are selected, 'U' if 'on beneficiary' is selected along with 'on us' or 'full value' option. If no valid selection is detected or marks are ambiguous, output 'U' as the default. For this field, you must strictly follow the extraction rules and instructions provided to you.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "hs_code",
+                    "description": "Objective: Extract the Harmonized System (HS/HSN) code for the goods. Format: 6-10 digit number, capturing digits only without missing leading or trailing zeroes. If multiple HS Codes are present, separate them with a comma. If multiple HS Codes appear under a single label, extract and separate them as well. Labels: ['Goods description and HS classification code:', 'HS Code:', 'HSN Code:', 'Tariff Code:']. Location: Typically near the 'Description of Goods'. Note: Do NOT extract from 'Import License Details' field and be aware it is a valid DGFT HSN.",
+                    "validation_regex": "^\\d{6,10}(,\\d{6,10})*$"
+                },
+                {
+                    "name": "beneficiary_account_no_iban",
+                    "description": "Objective: Extract the beneficiary's bank IBAN or account number. Rules: - Target labels include: 'Account No.:', 'A/C No.:', 'IBAN:', 'Acc No:'. - Location: Look only within the beneficiary bank details section. - Output must be the exact account number or IBAN found. - If both appear, prefer IBAN. - Preserve every digit exactly as in source text (including leading/trailing zeros and repeated digits). Pay special attention to not missing or altering repeated digits (e.g., '00', '111', '33', '88'). - Remove all spaces, dashes, or special characters within the number (e.g., '8110 9140 1280 1587 490' → '8110914012801587490'). - IBAN always starts with a 2-letter country code (e.g., 'BE93...', 'GB29...'). - Do not include the word 'IBAN' in the final output. - Do not add, remove, or modify any digits. Examples: 'BE 93 96 74 3446 3467' → 'BE93967434463467', 'BE26-0019-3303-8329' → 'BE26001933038329', '3813 011 404 002 27 35' → '38130114040022735'",
+                    "validation_regex": null        
+                }
+            ],
+            "crl_page_level_fields_3": [
+                {
+                    "name": "beneficary_bank_swift_code_sort_code_bsb_ifsc_code",
+                    "description": "Objective: Extract the beneficiary bank's SWIFT/BIC code, ensuring it specifically belongs to the beneficiary bank. Primary Target: Look for terms such as 'SWIFT', 'SWIFT Code', 'BIC Code', 'SORT Code', or 'IFSC Code' in proximity to beneficiary bank details. The SWIFT code must be **exactly 8 or 11 alphanumeric characters**. Normalization: Convert diacritics (é → e). Pay extra attention during extraction and carefully scan all relevant sections, including 'Bank Name', 'Bank Information', 'Bank Details', and 'Beneficiary Bank Swift Code'. **Special Handling**: The term 'ABA' might be overlapped or adjacent to the SWIFT Code, sometimes without a space and right next to each other, ensure it is not included in the extracted value. Make sure the term 'ABA' is excluded if they are the last 3 letters of the Swift Code. Return null only if the code is clearly absent.",
+                    "validation_regex": "^[A-Z0-9]{8}$|^[A-Z0-9]{11}$"
+                },
+                {
+                    "name": "intermediary_bank_swift",
+                    "description": "Objective: Extract the intermediary/correspondent bank's SWIFT/BIC code, ensuring it specifically belongs to the intermediary/correspondent bank.  Labels: ['Intermediary Bank', 'Correspondent Bank', 'Field 56']. Note: This is an additional bank used for routing payment. Primary Target: Look for terms such as 'SWIFT:', 'SWIFT Code:', 'BIC Code:', 'SORT Code:', or 'IFSC Code:' in proximity to the intermediary/correspondent bank details. The SWIFT code must be exactly 8 or 11 alphanumeric characters. Do not look in beneficiary bank details or use beneficiary codes if the intermediary code is absent; only search within the relevant intermediary/correspondent bank section or box. Output: Return the 8 or 11 character SWIFT code. Return null only if the code is clearly absent.",
+                    "validation_regex": "^[A-Z0-9]{8}$|^[A-Z0-9]{11}$"
+                }
+            ]
+        },
+        "document_wise": {
+            "crl_document_level_fields": [
+                {
+                    "name": "applicant_name",
+                    "description": "The applicant's full name. This Field is associated with one of the labels: ['Applicant', 'From', 'Customer Name', 'Remitter']. Location: Look for the name within a table or a dedicated 'Applicant Details' section. You must never extract the name from the document's letterhead. Note: Extract the full legal name, including suffixes.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "applicant_country",
+                    "description": "Objective: Extract the applicant's country as a 2-letter ISO code.\n- Location: Usually the last part of the applicant's address.\n- Action: Identify the full country name, then convert to its ISO 3166-1 alpha-2 code (e.g., 'India' -> 'IN', 'United States' -> 'US'). If country missing, use city or postal code from address to find country code. If neither, default to 'IN'.",
+                    "validation_regex": "^[A-Z]{2}$"
+                },
+                {
+                    "name": "applicant_signature",
+                    "description": "Objective: Find evidence of the applicant's signature or authorization.\n- Location: Typically in a signature block at the end of the document.\n- Keywords: ['Authorized Signatory', 'For [Company Name]', 'Signature', 'Signed by:']\n- Instruction: If any kind of applicant signature is present, return 'Signature Present', else return 'Signature Absent'.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "invoice_no",
+                    "description": "Objective: Extract the invoice number(s) referenced within the CRL.\n- Labels: ['Invoice No.:', 'Ref. Invoice:', 'PI No.:']\n- Location: In the body of the CRL, often in payment purpose or shipping details sections.\n- Format: Return as a string and handle identifiers that may include commas, hyphens, slashes, or periods as part of the identifier.. In case of multiple values, separate them with commas.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "invoice_date",
+                    "description": "Objective: Extract the date of the invoice referenced in the CRL.\n- Labels: ['Invoice Date:', 'Date of Invoice:', 'PI Date:']\n- Location: Near the referenced Invoice Number within the CRL.\n- Format: 'DD-MM-YYYY'.",
+                    "validation_regex": "^\\d{2}-\\d{2}-\\d{4}$"
+                },
+                {
+                    "name": "invoice_amount",
+                    "description": "Objective: Extract the value(s) of the invoice referenced in the CRL.\n- Labels: ['Invoice Amount:', 'Invoice Value:']\n- Location: Near the referenced Invoice Number within the CRL.\n- Handle values that may contain periods or commas accordingly. Note: Extract numerical value only, in case of multiple values, separate them with commas.",
+                    "validation_regex": "^\\d+(\\.\\d{1,2})?$"
+                },
+                {
+                    "name": "invoice_currency",
+                    "description": "Objective: Deduce and extract the three-letter ISO 4217 currency code.\n- **Primary Method (Symbol/Code Detection)**: Scan the text immediately around the primary remittance amount for either a standard currency symbol ($, €, £, etc.) or a 3-letter ISO code.\n - If a symbol is found, convert it to its ISO code (e.g., '$' -> 'USD', '€' -> 'EUR', 'US$' -> 'USD').\n - If an ISO code is found, extract it.\n- **Secondary Method (Contextual Clues)**: If no explicit symbol or code is found, check for mentions of currency within nearby labels (e.g., 'Amount in USD', 'Value (INR)').\n- **Output Format**: The final output must be free of currency symbols ($, €, £, etc.) and contain only a **3-letter uppercase ISO 4217 code.**",
+                    "validation_regex": "^[A-Z]{3}$"
+                },
+                {
+                    "name": "beneficiary_name",
+                    "description": "Objective: Extract the full legal name of the beneficiary (payee/seller).\n- Labels: ['Beneficiary:', 'Payee:', 'Pay to:', 'To (Beneficiary):', 'Supplier Name:', 'Seller Name:']\n- Content: A company or individual's full name, including legal suffixes (e.g., Ltd., Inc., GmbH).\n- Note: Distinguish from Applicant, Bank, or intermediary names. Do not include tags like 'company name:'.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "beneficiary_address",
+                    "description": "Objective: Extract the beneficiary's complete mailing address.\n- Location: Usually follows the Beneficiary Name.\n- Content: Should include street, city, state, postal code. Do not include the beneficiary's name in the address string. If country is absent, infer it from city and postal code and include in address.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "beneficiary_country",
+                    "description": "Objective: Extract the beneficiary's country as a 2-letter ISO code.\n- Labels: ['Country:', 'Beneficiary Country:']\n- Location: Usually the last part of the beneficiary's address or in a dedicated field.\n- Action: Identify the full country name, then convert to its ISO 3166-1 alpha-2 code (e.g., 'India' -> 'IN', 'United States' -> 'US').\n- Fallback: If the country is missing, use the city or postal code from the beneficiary's address to find the country code.",
+                    "validation_regex": "^[A-Z]{2}$"
+                },
+                {
+                    "name": "country_of_origin",
+                    "description": "Objective: Extract the country where goods were manufactured as a 2-letter ISO code.\n- Labels: ['Country of Origin:', 'Origin of Goods:', 'Made in:']\n- Action: Identify the full country name, then convert to its ISO 3166-1 alpha-2 code (e.g., 'India' -> 'IN', 'United States' -> 'US').\n- Note: Refers to goods' origin, not the beneficiary's or applicant's country.",
+                    "validation_regex": "^[A-Z]{2}$"
+                },
+                {
+                    "name": "description_of_goods",
+                    "description": "Objective: Extract the detailed description of goods or services being paid for.\n- Labels: ['Description of Goods/Services:', 'Details of Import:', 'Particulars:']\n- Cleaning: Remove all '*' and '\u0000' from extracted text. Example: '90\u0000 plate' → '90 plate' | '1*1/2' → '11/2'. Note: This should be a specific, detailed account, not a general classification.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "type_of_goods",
+                    "description": "Goal: Determine whether the goods are classified as 'Raw Material' or 'Capital Goods'.\n\nDetection Context: Locate the phrase or sentence fragment containing '...import of ... as part of our Raw Material/Capital Goods requirements'.\n\nDecision Logic:\n1. Perform a visual inspection for both 'Raw Material' and 'Capital Goods'.\n2. Scan across each label and its immediate bounding area for marks such as strikethroughs, horizontal/diagonal lines, or tick/check marks.\n\nStrikethrough Rules:\n- A strikethrough is any continuous horizontal or diagonal line intersecting most of the midsection of a word, even if faint or incomplete.\n- If any form of strikethrough appears on 'Raw Material', it must always be treated as excluded, regardless of ticks or other markings.\n- Likewise, any text crossed by such a line (horizontal, diagonal, or wavy) is considered not selected.\n- If markings are ambiguous (faint, partial, dotted, or unclear), default to treating them as a strikethrough—thus excluding that option.\n\nTick/Selection Rules:\n- A visible tick or check mark located on or near either 'Raw Material' or 'Capital Goods' indicates an intended selection.\n- If one option has a tick and the other has a strikethrough, select the one with the tick.\n- If one option has a marking (either tick or strikethrough) and the other has none, base the decision on that single marking.\n- If a conflict exists (tick and strikethrough both on the same option), the tick mark takes precedence.\n\nPriority and Validation:\n- Conduct a full strikethrough scan before deciding on selection.\n- An option is valid only if there are no intersecting or overlaid strikethroughs within its bounding box.\n- If both options are unmarked and neither has a strikethrough, default output to 'Raw Material'.\n\nSpecial Enforcement:\n- Presence of any strikethrough line over 'Raw Material' automatically invalidates it. In that case, the output must be 'Capital Goods'.\n- Always provide a clear justification in the output (e.g., 'Raw Material struck through; selecting Capital Goods.').",
+                    "validation_regex": null
+                }
+            ]
+        }
+    },
+    "INVOICE": {
+        "page_wise": {
+            "invoice_page_level_fields_1": [
+                {
+                    "name": "invoice_date",
+                    "description": "Objective: Extract the date the invoice was issued. Labels: ['Invoice Date', 'Date', 'Issue Date', 'Dated'].\n- Location: Typically found in the header, near the Invoice No. If multiple dates appear on the invoice, identify and extract the date specifically next to the Invoice number or below Invoice number. Note: Correct illogical years to be plausible and recent; the date must not be in the future or even 6 month older. Format: 'DD-MM-YYYY'.",
+                    "validation_regex": "^\\d{2}-\\d{2}-\\d{4}$"
+                },
+                {
+                    "name": "invoice_no",
+                    "description": "Objective: Extract the unique invoice identifier(s). Accurately capture identifiers exactly as they appear, including any commas, hyphens, slashes, periods, or other special characters. If multiple invoice numbers are present, extract all of them. In some cases, the identifier may include the words 'INV' or 'Invoice' as part of its value in addition to the label, retain and capture these. Labels: ['Invoice No.', 'Invoice #', 'Inv. No.', 'PROFORMA NO:', 'Sales Contract No.:'] Note: Location is typically prominently in the header or towards the top of the document. Return all valid identifiers found under the specified labels or matching the described patterns; return null if none are found.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "invoice_currency",
+                    "description": "Objective: Deduce and extract the three-letter ISO 4217 currency code.\n- **Primary Method (Symbol/Code Detection)**: Scan the text immediately around the primary remittance amount for either a standard currency symbol ($, €, £, etc.) or a 3-letter ISO code.\n - If a symbol is found, convert it to its ISO code (e.g., '$' -> 'USD', '€' -> 'EUR', 'US$' -> 'USD').\n - If an ISO code is found, extract it.\n- **Secondary Method (Contextual Clues)**: If no explicit symbol or code is found, check for mentions of currency within nearby labels (e.g., 'Amount in USD', 'Value (INR)').\n- **Output Format**: The final output must be free of currency symbols ($, €, £, etc.) and contain only a **3-letter uppercase ISO 4217 code.**",
+                    "validation_regex": "^[A-Z]{3}$"
+                },
+                {
+                    "name": "total_invoice_amount",
+                    "description": "Objective: Extract the exact final total amount due. Labels: ['Grand Total', 'Total Amount Due', 'Total Invoice Value', 'Totale Fattura']. Handle values that may contain periods, slashes, or hyphens accordingly. If multiple values are present, extract all of them. Note: This is the ultimate figure to be paid, inclusive of all charges/taxes if listed. Extract figures, not words. Exclude currency symbols and thousands separators, but keep the decimal separator. If the balance amount is present along with the total amount, extract only the balance amount.",
+                    "validation_regex": "^\\d+(\\.\\d{1,2})?$"
+                },
+                {
+                    "name": "beneficiary_account_no_iban",
+                    "description": "Objective: Extract the beneficiary's bank IBAN or account number. Rules: - Target labels include: 'Account No.:', 'A/C No.:', 'IBAN:', 'Acc No:'. - Location: Look only within the beneficiary bank details section. - Output must be the exact account number or IBAN found. - If both appear, prefer IBAN. - Preserve every digit exactly as in source text (including leading/trailing zeros and repeated digits). Pay special attention to not missing or altering repeated digits (e.g., '00', '111', '33', '88'). - Remove all spaces, dashes, or special characters within the number (e.g., '8110 9140 1280 1587 490' → '8110914012801587490'). - IBAN always starts with a 2-letter country code (e.g., 'BE93...', 'GB29...'). - Do not include the word 'IBAN' in the final output. - Do not add, remove, or modify any digits. Examples: 'BE 93 96 74 3446 3467' → 'BE93967434463467', 'BE26-0019-3303-8329' → 'BE26001933038329', '3813 011 404 002 27 35' → '38130114040022735'",
+                    "validation_regex": null        
+                },
+                {
+                    "name": "inco_term",
+                    "description": "Objective: Extract only the three-letter Incoterm code from the following list: 'EXW', 'FCA', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP', 'FAS', 'FOB', 'CFR', 'CIF'. Labels: ['Incoterms', 'Terms of Sale', 'Resa merce']. The output must always be one of these 11 codes; if none are found, default to returning 'FOB'.",
+                    "validation_regex": "^(EXW|FCA|CPT|CIP|DAP|DPU|DDP|FAS|FOB|CFR|CIF)$"
+                },
+                {
+                    "name": "port_of_loading",
+                    "description": "Objective: Extract the canonical city name of the port of loading from shipment-related sections.\n\n1. Context Scope: Search only in sections or fields labeled with 'Shipment Details', 'Port of Loading', 'POL', 'From Port', 'Place of Loading', or 'Port of Dispatch' (case-insensitive). Do not extract from unrelated sections.\n2. Label Extraction: Extract values immediately following recognized labels (ending with ':' or '-') or same-row elements in tables.\n3. Preprocessing:\n    - Remove whole words: 'port', 'sea port', 'airport' (case-insensitive).\n    - Strip all punctuation (commas, periods, slashes, hyphens).\n    - Normalize diacritics (e.g., 'Gdańsk' → 'Gdansk').\n    - Trim whitespace.\n    - Convert to Title Case.\n4. Extraction Rules:\n    - If the value is 'Any Port in [Country Name]', return only the normalized country name (Title Case).\n    - If the value is a country name, return it (Title Case).\n    - If the value is a city or port name, return only the first valid city name (Title Case).\n    - If ambiguous or invalid, return null.\n 5. Prohibitions:\n    - Do not infer or fabricate values.\n    - Never extract from loosely related or unlabeled sections.\n    - Never return values containing forbidden words or non-alphabetic content (unless needed for city).\n 6. Examples:\n    - Input: 'Port of Dispatch: BUSAN PORT, KOREA' — Output: 'Busan'\n    - Input: 'POL: Any Sea port in TURKEY' — Output: 'Turkey'\n    - Input: 'Port of Loading: SHANGHAI/ TIANJIN PORT, CHINA' — Output: 'Shanghai'\n ",
+                    "validation_regex": null
+                },
+                {
+                    "name": "port_of_discharge",
+                    "description": "Objective: Extract the canonical city name of the port of discharge or delivery from shipment-related sections.\n\n1. Context Scope: Search only in sections or fields labeled with 'Shipment Details', 'Port of Discharge', 'POD', 'To Port', 'Final Destination', or similar (case-insensitive). Do not extract from unrelated sections.\n2. Label Extraction: Extract values immediately following recognized labels (ending with ':' or '-') or same-row elements in tables.\n3. Preprocessing:\n    - Remove whole words: 'port', 'sea port', 'airport' (case-insensitive).\n    - Strip all punctuation (commas, periods, slashes, hyphens).\n    - Normalize diacritics (e.g., 'Gdańsk' → 'Gdansk').\n    - Trim whitespace.\n    - Convert to Title Case.\n4. Extraction Rules:\n    - If the value is 'Any Port in [Country Name]', return only the normalized country name (Title Case).\n    - If the value is a country name, return it (Title Case).\n    - If the value is a city or port name, return only the first valid city name (Title Case).\n    - If ambiguous or invalid, return null.\n 5. Prohibitions:\n    - Do not infer or fabricate values.\n    - Never extract from loosely related or unlabeled sections.\n    - Never return values containing forbidden words or non-alphabetic content (unless needed for city).\n 6. Examples:\n    - Input: 'Port of Discharge: NHAVA SHEVA PORT, INDIA' — Output: 'Nhava Sheva'\n    - Input: 'POD: Any Sea port in TURKEY' — Output: 'Turkey'\n    - Input: 'Final Destination: SHANGHAI/ TIANJIN PORT, CHINA' — Output: 'Shanghai'\n ",
+                    "validation_regex": null
+                },
+                {
+                    "name": "vessel_name",
+                    "description": "Objective: Extract the specific name of the ship, flight, or voyage.\n- Labels: ['Vessel Name', 'Voyage', 'Flight Name.']\n- Note: Return null if not specified.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "beneficiary_seller_signature",
+                    "description": "Objective: Identify the seller's signature or authorization. Location: Typically at the bottom of the invoice, within the signature block. Always output 'Signature present' if any valid indication of signature/authorization is detected, including: A handwritten signature, A typed name in the signature block, A seal overlapping or appearing with a signature, Any seal that is not labeled as the applicant's name or applicant's seal (considered beneficiary's seal). Output 'Signature present' if any of the above conditions are met. Return 'Signature Absent' if none are present. Take extra care in detecting cases where a seal may partially or fully overlap with a signature or typed name \u2014 still treat these as valid. Treat a typed name in the signature area the same as a handwritten one \u2014 do not output the name; output Signature present'.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "applicant_buyer_signature",
+                    "description": "Objective: Identify the buyer/applicant's signature or authorization. Location: Typically located in a signature block labeled 'Accepted By' at the end of the document. Keywords to Look For: 'Authorized Signatory', 'For [Company Name]', 'Signature', 'Signed by:'. Always output 'Signature Present' if any valid indication of the applicant's signature/authorization is detected, including: A handwritten signature, A typed name in the applicant's signature block, A seal overlapping or appearing with a signature or typed name, Any seal that clearly belongs to the applicant (i.e., labeled with the applicant's name or company). Return 'Signature Present' if any of the above conditions are met and 'Signature Absent' if none are present. Treat a typed name in the signature area exactly the same as a handwritten one \u2014 do not output the name itself, only 'Signature Present'. Take extra care in detecting cases where a seal may partially or fully overlap a signature or typed name \u2014 still treat these as valid.",
+                    "validation_regex": null
+                }
+            ],
+            "invoice_page_level_fields_2": [
+                {
+                    "name": "beneficary_bank_swift_code_sort_code_bsb_ifsc_code_routing_no",
+                    "description": "Objective: Extract the beneficiary bank's SWIFT/BIC code, ensuring it specifically belongs to the beneficiary bank. Primary Target: Look for terms such as 'SWIFT', 'SWIFT Code', 'BIC Code', 'SORT Code', or 'IFSC Code' in proximity to beneficiary bank details. The SWIFT code must be exactly 8 or 11 alphanumeric characters. Normalization: Convert diacritics (\u00e9 \u2192 e). Pay extra attention during extraction and carefully scan all relevant sections, including 'Bank Name', 'Bank Information', 'Bank Details', and 'Beneficiary Bank Swift Code'. **Special Handling**: Sometimes the term 'ABA' might be overlapped or adjacent to the code, ensure it is not included in the extracted value. Output: Return the normalized 11-character SWIFT code, or the first valid fallback identifier found (e.g., 'IFSC: HDFC0000123'). Return null only if the code is clearly absent.",
+                    "validation_regex": "^[A-Z0-9]{8}$|^[A-Z0-9]{11}$"
+                },
+                {
+                    "name": "intermediary_bank_field_56",
+                    "description": "Objective: Extract the intermediary/correspondent bank's SWIFT/BIC code, ensuring it specifically belongs to the intermediary/correspondent bank. Primary Target: Look for terms such as 'SWIFT:', 'SWIFT Code:', 'BIC Code:', 'SORT Code:', or 'IFSC Code:' in proximity to the intermediary/correspondent bank details. The SWIFT code must be exactly 8 or 11 alphanumeric characters. Normalization: Convert diacritics (\u00e9 \u2192 e). Labels: ['Intermediary Bank', 'Correspondent Bank', 'Field 56']. Note: This is an additional bank used for routing payment. Sometimes the term 'ABA' might be overlapped or adjacent to the code\u2014ensure it is not included in the extracted value. Do not look in beneficiary bank details or use beneficiary codes if the intermediary code is absent; only search within the relevant intermediary/correspondent bank section or box. Output: Return the normalized 11-character SWIFT code, or the first valid fallback identifier found (e.g., 'IFSC: HDFC0000123'). Return null only if the code is clearly absent.",
+                    "validation_regex": "^[A-Z0-9]{8}$|^[A-Z0-9]{11}$"
+                }
+            ]
+        },
+        "document_wise": {
+            "invoice_document_level_fields": [
+                {
+                    "name": "buyer_name",
+                    "description": "Objective: Extract the full name of the buyer/customer/importer/applicant. Labels: ['CONSIGNEE:', 'Buyer:', 'Bill To:', 'Customer:', 'Sold To:', 'Importer:']. Handle names that may contain periods, slashes, or ampersands accordingly. Location: The primary name in the recipient's detail block. If not identifiable using these labels, look for the detail just after 'Invoice' or 'Proforma Invoice' is written, usually within the top 30% of the document.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "buyer_country",
+                    "description": "Objective: Extract the buyer's country as a 2-letter ISO code.\n- Location: Usually the last part of the buyer's address.\n- Action: Identify the full country name, then convert to its ISO 3166-1 alpha-2 code (e.g., 'India' -> 'IN', 'United States' -> 'US'). If country missing, use city or postal code from address to find country code. If neither, default to 'IN'.",
+                    "validation_regex": "^[A-Z]{2}$"
+                },
+                {
+                    "name": "seller_name",
+                    "description": "Objective: Extract the full name of the seller/issuer. Labels: ['Seller', 'From', 'Exporter', 'Beneficiary']. Handle names that may contain periods, slashes, or ampersands accordingly. Location: Prominently in the invoice header or letterhead.",
+                    "validation_regex": null
+                },
+                {
+                    "name": "seller_country",
+                    "description": "Objective: Extract the seller's country as a 2-letter ISO code.\n- Location: Usually the last part of the seller's address.\n- Action: Identify the full country name, then convert to its ISO 3166-1 alpha-2 code (e.g., 'India' -> 'IN', 'United States' -> 'US'). If country missing, use city or postal code from address to find country code.",
+                    "validation_regex": "^[A-Z]{2}$"
+                }
+            ]
+        }
+    }
+}

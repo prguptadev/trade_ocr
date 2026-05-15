@@ -1,0 +1,42 @@
+I've read everything. Now I understand the picture clearly. Let me explain what's wrong, then fix it.
+
+  Root cause analysis
+
+  The extraction code is structurally different from classification in one critical way, and that's exactly why the trace breaks at the publish step in
+  Dynatrace.
+
+  Classification (works): the callback does everything synchronously on the same Pub/Sub callback thread → consumer span is current the entire time → LLM
+  span → publish PRODUCER span — all on one thread, one OTel context.
+
+  Extraction (broken): the callback hands the work off to the main asyncio loop:
+  coro = process_documents(...)
+  future = asyncio.run_coroutine_threadsafe(coro, _main_loop)   # ← runs on a DIFFERENT thread
+  job_status = future.result(...)
+  run_coroutine_threadsafe does not copy the OTel context to the target loop. So inside process_documents (and all the LLM calls), trace.get_current_span()
+   is invalid on the main loop. That's why processing_service.py:126 falls through and llm_client.py:242 ends up assigning root_trace_id = uuid.uuid4().hex
+   — a brand-new random trace per LLM call. You can see this in extraction_log_11-05:
+  - consumer parent trace from classification: da36d84b48ec21fb277d73454afb5c1a (line 52, only the first LLM call still has it because of luck/timing)
+  - subsequent LLM calls: efaceeaefeb98198…, efaceeaefed777459…, efaceeaefeb1af736… — all UUIDs
+
+  When you look at the Neev call in Dynatrace, you're looking at a different trace than the consumer span. So when you scroll forward expecting to see the
+  publish in that PurePath — there's nothing, because the publish span lives under the original consumer trace, not the LLM trace.
+
+  There are 4 more real bugs alongside:
+
+  1. extend_ack_deadline UnboundLocalError (line 14 of the log: Failed to extend ack deadline: cannot access free variable 'job_id'…). The thread starts
+  before job_id is assigned in the enclosing scope. So ack deadline is never extended — long jobs (>60s default) get re-delivered.
+  2. setup_logging() runs after configure_opentelemetry (in extraction lifespan), wiping out LoggingInstrumentor's format. That's why extraction logs have
+  no otelTraceID/otelSpanID fields while classification's do. Classification calls setup_logging() before configure_opentelemetry, which is the correct
+  order.
+  3. autodynatrace import is dead weight — Could not initialize the OneAgent SDK, AgentState: 2 — and it can collide with the OTel SDK exporter you've
+  configured. Drop it.
+  4. output_topic_path/dlq_topic_path as span name and messaging.destination.name uses the full path (projects/.../topics/...). Dynatrace conventions want
+  the short topic name (classification uses settings.OUTPUT_TOPIC_ID). Minor cosmetic but worth aligning.
+
+  Let me also check one piece I haven't read — the LLM_PROVIDER_NEEV env / outbound httpx wiring — actually no, HTTPXClientInstrumentor handles it; the
+  trace shown is whatever the surrounding OTel context is, which is where #1 bites us.
+
+  Fix
+
+  I'll patch extract_pubsub.py to propagate OTel context across the asyncio boundary, fix the job_id closure bug, align the span attributes with
+  classification, and re-order main.py so the logging format isn't wiped out.

@@ -1,0 +1,60 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: perf-otel-collector-config
+  namespace: dynatrace
+data:
+  otel-collector-config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: 'yb_prom_federate'
+            scrape_interval: 60s
+            honor_labels: true
+            scheme: https
+            metrics_path: '/federate'
+            params:
+              'match[]':
+                 - '{saved_name=~"cpu_stime|node_cpu_usage|node_memory_MemTotal_bytes|async_replication_committed_lag_micros|time_since_last_getchanges|node_memory_MemAvailable_bytes|node_disk_reads_completed_total|node_disk_writes_completed_total|node_filesystem_size_bytes|node_filesystem_avail_bytes|node_disk_read_time_seconds_total|node_disk_reads_completed_total|node_disk_write_time_seconds_total|node_disk_writes_completed_total|node_load5|yb_node_ysql_write_read|ql_read_latency_count|ql_write_latency_count|yb_node_ysql_connections_count|yb_ysqlserver_CatalogCacheMisses_count|full_compaction_pool_run_time_us_sum|rocksdb_write_wal|ybp_universe_replication_factor|ybp_health_check_nodes_with_errors"}'
+            static_configs:
+            - targets: ['10.148.73.2:9090']
+            metric_relabel_configs:
+            - source_labels: [exported_instance]
+              regex: 'yb-dev-ybdb-trade-gcp-mumbai-perf1-cluster1-n[1-3]'
+              action: keep
+            basic_auth:
+              username: '${env:PROM_USERNAME}'
+              password: '${env:PROM_PASSWORD}'
+            tls_config:
+              ca_file: /etc/otel/yb/yb-ca.crt
+              insecure_skip_verify: false
+
+    exporters:
+      otlphttp/dynatrace:
+         endpoint: "${env:DT_ENDPOINT}"
+         headers:
+           Authorization: "${env:DT_API_TOKEN}"
+         tls:
+          ca_file: /etc/otel/certs/ca.crt
+          insecure: false
+          insecure_skip_verify: true
+      debug:
+        verbosity: detailed
+    service:
+      pipelines:
+        metrics:
+          receivers: [otlp,prometheus]
+          exporters: [otlphttp/dynatrace, debug]
+        logs:
+          receivers: [otlp]
+          exporters: [otlphttp/dynatrace]
+        traces:
+          receivers: [otlp]
+          exporters: [otlphttp/dynatrace, debug]

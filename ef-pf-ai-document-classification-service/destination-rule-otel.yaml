@@ -1,0 +1,11 @@
+# destination-rule-otel.yaml
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: disable-mtls-to-otel
+  namespace: trd-perf1  # Apply in your app's namespace
+spec:
+  host: uat-otel-collector-svc.dynatrace.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE  # This is the magic key: do not use Istio mTLS for this host

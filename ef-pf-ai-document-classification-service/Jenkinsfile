@@ -1,0 +1,109 @@
+@Library('shared_libraries@master') _
+//@Library('shared_libraries') _
+//@Library('shared_libraries@develop-cxone') _
+ 
+def config = [:]
+pipeline {
+	agent {
+		node {
+			label 'AI-Agent-uat'
+		}
+	}
+
+	
+
+	stages {
+		stage ('CHECKOUT stage') {
+			steps {
+				script {
+					echo 'CHECKOUT STAGE'
+					cleanWs()
+					runGitCheckOut(false)
+					config = pipelineSetup()
+					echo "${env.BRANCH_NAME}"
+					def url = scm.getUserRemoteConfigs()[0].getUrl()-"https://"
+					echo "Git URL is ${url}"
+				}
+			}
+		}
+
+		stage ('CxOne CHECKMARX stage SAST SCA') {
+			steps {
+				script {
+					echo 'CxOne SAST SCA CHECKMARX STAGE'
+					config = pipelineSetup()
+ 					cxOneSastSca()
+
+					// cxOneScs()
+				}
+			}
+		}
+
+//  		stage ('CxOne CHECKMARX stage KICS') {
+// 		steps {
+// 			script {
+// 					echo 'CxOne KICS CHECKMARX STAGE'
+// 					config = pipelineSetup()
+// 					cxOneScanKics_test.docker(config)
+// 					echo " passed above SAST scan stage"
+// 			}
+//  			}
+// 		}
+
+		stage ('Build stage') {
+			steps {
+				script {
+					echo 'BUILD STAGE'
+					config = pipelineSetup()
+					def service_name = ['ef-pf-ai-document-classification-service']
+					sh ' pip3 install --upgrade pip'
+                    sh 'pip3 install --no-cache-dir -r requirements.txt'
+				}
+			}
+		}
+
+		stage ('SONARQUBE stage') {
+			steps {
+				script {
+					echo 'SONARQUBE STAGE'
+				     config = pipelineSetup()
+					// sonarQubeScan()
+				}
+			}
+		}
+
+		stage ('Containerize stage') {
+			steps {
+				script {
+					echo 'Containerize STAGE'
+					config = pipelineSetup()
+					def service_name = ['ef-pf-ai-document-classification-service']
+					runDockerBuild.build(config, service_name)
+					runDockerPush(config, service_name)
+				}
+			}
+		}
+
+		stage ('QUAY stage') {
+			steps {
+				script {
+					echo 'QUAY STAGE'
+					config = pipelineSetup()
+					def service_name = ['ef-pf-ai-document-classification-service']
+					runContainerReport(config, service_name)
+				}
+			}
+		}
+
+		stage ('DEPLOY stage') {
+			steps {
+				script {
+					echo 'DEPLOY STAGE'
+					config = pipelineSetup()
+					def service_name = ['ef-pf-ai-document-classification-service']
+					runHelmDeploy(config, service_name)
+				}
+			}
+		}
+	}
+}
